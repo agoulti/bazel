@@ -124,6 +124,7 @@ class RemoteSpawnRunner implements SpawnRunner {
     TreeNode inputRoot = repository.buildFromActionInputs(inputMap);
     repository.computeMerkleDigests(inputRoot);
     Command command = buildCommand(spawn.getArguments(), spawn.getEnvironment());
+
     Action action =
         buildAction(
             execRoot,
@@ -139,15 +140,18 @@ class RemoteSpawnRunner implements SpawnRunner {
     Context withMetadata =
         TracingMetadataUtils.contextWithMetadata(buildRequestId, commandId, actionKey);
     Context previous = withMetadata.attach();
+
     try {
       boolean acceptCachedResult = options.remoteAcceptCached && Spawns.mayBeCached(spawn);
       boolean uploadLocalResults = options.remoteUploadLocalResults;
 
       try {
+        System.out.println("SpawnRunner: getting cached result for action key:\n" + actionKey.getDigest());
         // Try to lookup the action in the action cache.
         ActionResult cachedResult =
             acceptCachedResult ? remoteCache.getCachedActionResult(actionKey) : null;
         if (cachedResult != null) {
+          System.out.println("SpawnRunner: this action was cached, not updating.");
           if (cachedResult.getExitCode() != 0) {
             // The remote cache must never serve a failed action.
             throw new EnvironmentalExecException(
@@ -390,6 +394,8 @@ class RemoteSpawnRunner implements SpawnRunner {
           Spawns.mayBeCached(spawn)
               && Status.SUCCESS.equals(result.status())
               && result.exitCode() == 0;
+      System.out.println("uploadAction is " + uploadAction + ".");
+      System.out.println("mayBeCached: " + Spawns.mayBeCached(spawn));
       remoteCache.upload(actionKey, execRoot, outputFiles, policy.getFileOutErr(), uploadAction);
     } catch (IOException e) {
       if (verboseFailures) {

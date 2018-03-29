@@ -242,23 +242,35 @@ public class GrpcRemoteCache extends AbstractRemoteActionCache {
     ActionResult.Builder result = ActionResult.newBuilder();
     upload(execRoot, files, outErr, result);
     if (!uploadAction) {
+      System.out.println("UpdateActionResult>>> Not uploading action, it is turned off.");
       return;
     }
     try {
       retrier.execute(
-          () ->
-              acBlockingStub()
-                  .updateActionResult(
-                      UpdateActionResultRequest.newBuilder()
+          () -> {
+            UpdateActionResultRequest a = UpdateActionResultRequest.newBuilder()
                           .setInstanceName(options.remoteInstanceName)
                           .setActionDigest(actionKey.getDigest())
                           .setActionResult(result)
-                          .build()));
+                          .build();
+            System.out.println("UpdateActionResult>>> Attempting to update:\n" + a);
+            ActionResult response;
+            try {
+              response = acBlockingStub().updateActionResult(a);
+            } catch (Exception e) {
+              System.out.println("UpdateActionResult>>> Attempt failed. Exception:\n" + e);
+              throw e;
+            }
+            System.out.println("UpdateActionResult>>> Attempt completed. Received:\n" + response);
+            return response;
+          });
     } catch (RetryException e) {
       if (RemoteRetrierUtils.causedByStatus(e, Status.Code.UNIMPLEMENTED)) {
+        System.out.println("UpdateActionResult>>> Not retrying: Unimplemented by the server.");
         // Silently return without upload.
         return;
       }
+      System.out.println("UpdateActionResult>>> Not retrying. Exception:\n" + e);
       throw e;
     }
   }
