@@ -254,11 +254,13 @@ final class DockerSandboxedSpawnRunner extends AbstractSandboxSpawnRunner {
       cmdLine.setTimeout(timeout);
     }
 
+    List<String> cmd = cmdLine.build();
+    System.out.println("Docker command line: " + String.join(" ", cmd));
     SandboxedSpawn sandbox =
         new CopyingSandboxedSpawn(
             sandboxPath,
             sandboxExecRoot,
-            cmdLine.build(),
+            cmd,
             environment,
             SandboxHelpers.processInputFiles(spawn, context, execRoot),
             outputs,
